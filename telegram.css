@@ -2,13 +2,12 @@
 .brand-sign{display:none}
 body[data-page=home] .topbar{position:relative;isolation:isolate;align-items:center}
 body[data-page=home] .topbar>div:first-child{position:relative;min-width:0}
-body[data-page=home] .brand-sign{display:block;position:relative;width:clamp(210px,56vw,300px);height:122px;pointer-events:none;isolation:isolate;margin-top:-4px}
-.brand-ribbons{position:absolute;width:280px;height:122px;left:-38px;top:-8px;z-index:-1;overflow:visible;opacity:.92}
-.brand-wordmark{position:absolute;left:-5px;top:9px;width:calc(100% + 10px);height:103px;object-fit:contain;object-position:left center;transform:none}
+body[data-page=home] .brand-sign{display:block;position:relative;width:128px;height:128px;pointer-events:none;isolation:isolate;margin:0 0 7px}
+.brand-wordmark{display:block;width:100%;height:100%;object-fit:contain;transform:none}
 body[data-page=home] #pageTitle{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap;border:0}
 body[data-page=home] .subtitle{position:relative;margin-top:0;padding-left:4px;z-index:1}
 body[data-page=home] #quickAdd{align-self:center;position:relative;z-index:2}
-@media(max-width:359px){body[data-page=home] .brand-sign{width:205px;height:113px}.brand-ribbons{width:250px;height:113px;left:-30px;top:-7px}.brand-wordmark{top:8px;left:-4px;height:99px}}
+@media(max-width:359px){body[data-page=home] .brand-sign{width:116px;height:116px}}
 .mini-data-tools{display:grid;gap:10px;margin-top:16px}.mini-data-tools button{min-height:46px}
 .modal-fields textarea{width:100%;min-height:140px;resize:vertical;border:1px solid #dbc09a;background:#fff9ed;border-radius:12px;padding:12px;font:13px/1.6 ui-monospace,monospace!important;color:#503b2a}
 .telegram-app .content{padding-top:calc(14px + max(env(safe-area-inset-top,0px),var(--mini-safe-top,0px)));padding-left:max(16px,env(safe-area-inset-left,0px),var(--mini-safe-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px),var(--mini-safe-right,0px));padding-bottom:calc(105px + max(env(safe-area-inset-bottom,0px),var(--mini-safe-bottom,0px)))}
