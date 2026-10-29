@@ -1,0 +1,5 @@
+.env
+.env.*
+*backup*.json
+ladno-*.json
+*.zip
