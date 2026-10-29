@@ -443,7 +443,7 @@ input,select,textarea{font-size:16px!important}.mobile-budget-bar{display:none}
 
 </style>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="stylesheet" href="./telegram.css">
+<link rel="stylesheet" href="./telegram.css?v=brand-1">
 </head>
 <body>
 <div class="layout">
@@ -454,7 +454,24 @@ input,select,textarea{font-size:16px!important}.mobile-budget-bar{display:none}
   </aside>
   <main class="content">
     <header class="topbar">
-      <div><div class="eyebrow">ЛИЧНОЕ ПРОСТРАНСТВО</div><h1 class="title" id="pageTitle">Ладно.</h1><p class="subtitle" id="pageSubtitle">Обзор бюджета</p></div>
+      <div><div class="brand-sign" aria-hidden="true">
+  <svg class="brand-ribbons" viewBox="0 0 440 160" fill="none" focusable="false">
+    <path d="M10-40V45Q10 146 111 146H470" stroke="#577754" stroke-width="18"/>
+    <path d="M28-40V45Q28 128 111 128H470" stroke="#78a08d" stroke-width="18"/>
+    <path d="M46-40V45Q46 110 111 110H470" stroke="#edb644" stroke-width="18"/>
+    <path d="M64-40V45Q64 92 111 92H470" stroke="#f18a28" stroke-width="18"/>
+    <path d="M82-40V45Q82 74 111 74H470" stroke="#e85c24" stroke-width="18"/>
+    <path d="M100-40V45Q100 56 111 56H470" stroke="#bd4930" stroke-width="18"/>
+  </svg>
+  <svg class="brand-wordmark" viewBox="0 0 360 142" fill="none" focusable="false">
+    <defs><linearGradient id="ladnoWordmarkInk" x1="140" y1="22" x2="195" y2="128" gradientUnits="userSpaceOnUse"><stop stop-color="#f58a26"/><stop offset="1" stop-color="#e4511d"/></linearGradient></defs>
+    <g font-family="Lobster,Georgia,serif" font-size="108" font-weight="400" font-style="normal" stroke-linejoin="round" paint-order="stroke fill">
+      <text x="18" y="105" textLength="312" lengthAdjust="spacingAndGlyphs" transform="translate(6 8)" fill="#493b25" stroke="#493b25" stroke-width="20">Ладно.</text>
+      <text x="18" y="105" textLength="312" lengthAdjust="spacingAndGlyphs" fill="url(#ladnoWordmarkInk)" stroke="#fff0c9" stroke-width="12">Ладно.</text>
+    </g>
+  </svg>
+</div>
+<div class="eyebrow">ЛИЧНОЕ ПРОСТРАНСТВО</div><h1 class="title" id="pageTitle">Ладно.</h1><p class="subtitle" id="pageSubtitle">Обзор бюджета</p></div>
       <div class="top-actions"><div class="month-picker"><button id="monthPrev" aria-label="Предыдущий месяц">‹</button><span id="monthLabel"></span><button id="monthNext" aria-label="Следующий месяц">›</button></div><button class="primary" id="quickAdd" aria-label="Добавить операцию"><span class="quick-add-symbol" aria-hidden="true">＋</span><span class="quick-add-label">Добавить</span></button></div>
     </header>
     <div class="mobile-budget-bar"><label for="budgetSwitch">Бюджет</label><select id="budgetSwitch" aria-label="Выбрать бюджет"><option value="mine">Личный бюджет</option><option value="partner">Тестовый профиль</option><option value="family">Семейный бюджет</option></select></div><section class="space-toolbar" aria-label="Переключение тестовых бюджетов"><div class="space-top"><div><span class="space-kicker">ФИНАНСОВЫЕ ПРОСТРАНСТВА</span><h2 id="spaceHeading">Личный бюджет</h2></div><span class="preview-stamp">ДЕМО · ЛОКАЛЬНО</span></div><div class="space-buttons" id="spaceButtons"></div><p class="space-warning">Это <b>макет без входа по почте</b>: переключение между профилями не защищает данные. Не вводите реальные финансовые сведения до подключения сервера.</p></section><p class="mini-status" id="miniStatus" role="status">Telegram-версия · локальные записи на устройстве.</p><div id="demoBanner"></div>

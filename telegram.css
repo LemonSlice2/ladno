@@ -1,4 +1,14 @@
 .mini-status{font-size:11px;color:#80664b;line-height:1.6;margin:0 0 12px;padding:9px 12px;background:#f4e2c5;border-radius:12px}
+.brand-sign{display:none}
+body[data-page=home] .topbar{position:relative;isolation:isolate;align-items:center}
+body[data-page=home] .topbar>div:first-child{position:relative;min-width:0}
+body[data-page=home] .brand-sign{display:block;position:relative;width:clamp(210px,56vw,300px);height:122px;pointer-events:none;isolation:isolate;margin-top:-4px}
+.brand-ribbons{position:absolute;width:280px;height:122px;left:-38px;top:-8px;z-index:-1;overflow:visible;opacity:.92}
+.brand-wordmark{position:absolute;left:-4px;top:12px;width:100%;height:auto;overflow:visible;transform:rotate(-7deg)}
+body[data-page=home] #pageTitle{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap;border:0}
+body[data-page=home] .subtitle{position:relative;margin-top:0;padding-left:4px;z-index:1}
+body[data-page=home] #quickAdd{align-self:center;position:relative;z-index:2}
+@media(max-width:359px){body[data-page=home] .brand-sign{width:205px;height:113px}.brand-ribbons{width:250px;height:113px;left:-30px;top:-7px}.brand-wordmark{top:15px;left:-6px}}
 .mini-data-tools{display:grid;gap:10px;margin-top:16px}.mini-data-tools button{min-height:46px}
 .modal-fields textarea{width:100%;min-height:140px;resize:vertical;border:1px solid #dbc09a;background:#fff9ed;border-radius:12px;padding:12px;font:13px/1.6 ui-monospace,monospace!important;color:#503b2a}
 .telegram-app .content{padding-top:calc(14px + max(env(safe-area-inset-top,0px),var(--mini-safe-top,0px)));padding-left:max(16px,env(safe-area-inset-left,0px),var(--mini-safe-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px),var(--mini-safe-right,0px));padding-bottom:calc(105px + max(env(safe-area-inset-bottom,0px),var(--mini-safe-bottom,0px)))}
@@ -14,7 +24,7 @@
 .telegram-dark .mini-status,.telegram-dark .demo-note,.telegram-dark .money-details,.telegram-dark .week-overview,.telegram-dark .notice,.telegram-dark .warnings,.telegram-dark .bills-note,.telegram-dark .quickitem,.telegram-dark .empty{background:#393429;color:#e5cfad;border-color:#685842}
 .telegram-dark h2,.telegram-dark .section-heading h2,.telegram-dark .modal-head h2,.telegram-dark .quickitem b,.telegram-dark .panel-head h2,.telegram-dark .account-name,.telegram-dark .forecast-total{color:#f7ecd8}
 .telegram-dark .subtitle,.telegram-dark .hint,.telegram-dark .form-help,.telegram-dark .section-note,.telegram-dark .cal-event-info small,.telegram-dark .field label,.telegram-dark .tx-sub,.telegram-dark .account-sub,.telegram-dark .quicksub,.telegram-dark .cal-kicker{color:#d0b994}
-.telegram-dark .bottomnav{background:#302e27f5;border-color:#66563f}.telegram-dark .bottomnav button{color:#ddc9a7}.telegram-dark .bottomnav button.active{background:#655138;color:#fff1d7}
+.telegram-dark .bottomnav{background:#302e27f5!important;border-color:#66563f!important}.telegram-dark .bottomnav button{color:#ddc9a7}.telegram-dark .bottomnav button.active{background:#655138;color:#fff1d7!important}
 .telegram-dark .outline,.telegram-dark .tx-act,.telegram-dark .modal-head .x{background:#443b2c;color:#f7dfb8;border-color:#a18156}
 .telegram-dark .week-day[aria-pressed=true],.telegram-dark .cal-day.chosen{background:#526544;color:#fff0d5;border-color:#a9bc85}
 .telegram-dark .calendar-mode{background:#393429;border-color:#685842}.telegram-dark .calendar-mode button{color:#ddc9a7}.telegram-dark .calendar-mode button[aria-pressed=true]{background:#655138;color:#fff1d7}
