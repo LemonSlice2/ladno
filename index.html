@@ -745,7 +745,7 @@ function moveAccount(key,direction){
   const card=Array.from(document.querySelectorAll?.('[data-account-id]')||[]).find(el=>el.dataset.accountId===key);
   const buttons=Array.from(card?.querySelectorAll?.('[data-action="move-account"]')||[]);
   (buttons.find(button=>Number(button.dataset.direction)===direction&&!button.disabled)||buttons.find(button=>!button.disabled))?.focus?.({preventScroll:true});
-  card?.scrollIntoView?.({block:'nearest',behavior:'auto'});
+  card?.scrollIntoView?.({block:'center',behavior:'auto'});
   toast('Счёт «'+account.title+'»: '+(target+1)+' из '+ordered.length);
   return true;
 }
