@@ -335,6 +335,14 @@ body{background-color:#f7e8ca;background-image:radial-gradient(#855a3f0c .7px,tr
 
 .emoji-picker{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}.emoji-option{width:42px;height:42px;border:1px solid #dfc8a5;background:#fff8eb;border-radius:12px;font-size:21px;cursor:pointer}.emoji-option.selected{outline:3px solid #c35f32;background:#f6e3c6}.emoji-custom{display:flex;align-items:center;gap:8px;font-size:12px;color:#765b43}.emoji-custom input{width:76px!important;min-height:42px;text-align:center;font-size:20px}.color-picker{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}.color-option{width:36px;height:36px;border:2px solid #fff;border-radius:50%;background:var(--swatch);box-shadow:0 0 0 1px #cdb99d;cursor:pointer}.color-option.selected{outline:3px solid #c35f32;outline-offset:2px}
 /* v0.9: compact mobile views, with larger layouts layered above them. */
+.income-month-rules{display:grid;gap:18px}
+.income-month-rules[hidden],.income-date-rule[hidden]{display:none!important}
+.income-preview{padding:14px 16px;border:1px solid #c7ceaa;border-radius:16px;background:#edf0df;color:#405330;font-size:14px;line-height:1.55}
+.income-preview ul{list-style:none;padding:0;margin:9px 0 0;display:grid;gap:9px}
+.income-preview li{display:grid;gap:2px}
+.income-preview time{font-weight:700}
+.income-preview small{font-size:13px;color:#52603f}
+.income-preview p{margin:8px 0 0}
 .account-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
 .account-card-head .account-symbol{margin:0}
 .account-order-controls{display:flex;align-items:center;gap:7px}
@@ -489,7 +497,7 @@ body .account-kicker,body .cal-kicker{font-size:12px;line-height:1.5}
 </style>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="icon" type="image/png" href="assets/ladno-badge-v3.png">
-<link rel="stylesheet" href="./telegram.css?v=readable-home-1">
+<link rel="stylesheet" href="./telegram.css?v=income-rules-1">
 </head>
 <body>
 <div class="layout">
@@ -548,34 +556,45 @@ const Finance = (() => {
   const daysBetween = (a,b) => Math.round((Date.parse(b+'T12:00:00Z')-Date.parse(a+'T12:00:00Z'))/86400000);
   const monthEnd = value => {const [y,m]=value.slice(0,7).split('-').map(Number);return new Date(Date.UTC(y,m,0,12)).toISOString().slice(0,10);};
   const spendable = account => account.kind !== 'credit' && (typeof account.spendable === 'boolean' ? account.spendable : account.kind !== 'savings');
-  function occurrences(item,from,to) {
+  function occurrenceDetails(item,from,to) {
     const start=item.startDate||item.date;
-    if(!validDate(start)||from>to||start>to)return [];
-    if(item.unit==='once')return start>=from&&start<=to?[start]:[];
+    if(!validDate(start)||!validDate(from)||!validDate(to)||from>to)return [];
+    if(item.unit==='once')return start>=from&&start<=to?[{date:start,nominalDate:start,period:null}]:[];
     const step=Math.max(1,Math.floor(Number(item.interval)||1)), out=[];
     if(item.unit==='week'){
       let index=Math.max(0,Math.ceil(daysBetween(start,from)/(step*7)));
-      for(let date=day(start,index*step*7);date<=to;date=day(start,++index*step*7))out.push(date);
+      for(let date=day(start,index*step*7);date<=to;date=day(start,++index*step*7))out.push({date,nominalDate:date,period:null});
     }else{
       const [sy,sm,sd]=start.split('-').map(Number),[fy,fm]=from.split('-').map(Number),anchorDay=Math.min(31,Math.max(1,Number(item.day)||sd));
+      const latestNominal=item.weekendRule==='previous'?day(to,2):to;
       let offset=Math.max(0,Math.ceil(((fy-sy)*12+fm-sm)/step))*step;
       for(let guard=0;guard<2400;guard++,offset+=step){
         const first=new Date(Date.UTC(sy,sm-1+offset,1,12)).toISOString().slice(0,10),last=monthEnd(first);
-        const date=first.slice(0,8)+String(Math.min(anchorDay,Number(last.slice(-2)))).padStart(2,'0');
-        if(date>to)break;
-        if(date>=start&&date>=from)out.push(date);
+        const nominalDate=item.monthDayRule==='last'?last:first.slice(0,8)+String(Math.min(anchorDay,Number(last.slice(-2)))).padStart(2,'0');
+        if(nominalDate>latestNominal)break;
+        const weekday=new Date(nominalDate+'T12:00:00Z').getUTCDay();
+        const date=item.weekendRule==='previous'&&[0,6].includes(weekday)?day(nominalDate,weekday===0?-2:-1):nominalDate;
+        if(nominalDate>=start&&date>=from&&date<=to)out.push({date,nominalDate,period:first.slice(0,7)});
       }
     }
     return out;
   }
+  const occurrences=(item,from,to)=>occurrenceDetails(item,from,to).map(e=>e.date);
   const eventKey = (kind,id,date) => `${kind}:${id}:${date}`;
-  function handled(d,kind,id,date){return d.transactions.some(t=>kind==='bill'?t.type==='expense'&&t.billId===id&&(t.billDate||t.date)===date:t.type==='income'&&t.plannedIncomeId===id&&(t.incomeDate||t.date)===date);}
+  const incomePeriod=(item,date)=>item?.unit==='month'?occurrenceDetails(item,date,date)[0]?.period||null:null;
+  const incomeEventKey=(item,date)=>eventKey('income',item.id,incomePeriod(item,date)?'month:'+incomePeriod(item,date):date);
+  function linkedTransaction(d,kind,id,date){
+    if(kind==='bill')return d.transactions.find(t=>t.type==='expense'&&t.billId===id&&(t.billDate||t.date)===date);
+    const item=d.plannedIncomes.find(i=>i.id===id),period=incomePeriod(item,date);
+    return d.transactions.find(t=>t.type==='income'&&t.plannedIncomeId===id&&(period&&t.incomePeriod?t.incomePeriod===period:(t.incomeDate||t.date)===date));
+  }
+  const handled=(d,kind,id,date)=>!!linkedTransaction(d,kind,id,date);
   function scheduled(d,from,to,includeHandled=false){
     const out=[];
     for(const [kind,list] of [['bill',d.bills],['income',d.plannedIncomes]])for(const item of list||[]){
       const normalized=kind==='income'&&!item.startDate?{...item,startDate:item.date,unit:'once'}:item;
       for(const date of occurrences(normalized,from,to)){
-        const done=handled(d,kind,item.id,date),skipped=(d.skippedOccurrences||[]).includes(eventKey(kind,item.id,date));
+        const done=handled(d,kind,item.id,date),keys=d.skippedOccurrences||[],skipped=keys.includes(eventKey(kind,item.id,date))||kind==='income'&&keys.includes(incomeEventKey(normalized,date));
         if(includeHandled||!done&&!skipped)out.push({kind,id:item.id,date,title:item.title,amount:item.amount,accountId:item.accountId||'',emoji:item.emoji||(kind==='bill'?'🧾':'↗'),done,skipped});
       }
     }
@@ -629,7 +648,7 @@ const Finance = (() => {
     const risks=projection.points.flatMap(p=>p.accounts.filter(a=>a.kind!=='credit'&&cents(a.free)<0).map(a=>({date:p.date,accountId:a.id,title:a.title,amount:-a.free})));
     return {actual,nextIncome,end,days,safe:rub(Math.max(0,minimum)),signed:rub(minimum),deficit:rub(Math.max(0,-minimum)),daily:rub(Math.floor(Math.max(0,minimum)/days)),buffer:rub(buffer),obligations:rub(obligations),projection,risk:risks[0]||null};
   }
-  return {cents,rub,validDate,day,daysBetween,monthEnd,spendable,occurrences,eventKey,handled,scheduled,goalSaved,ledger,forecast,spendingPlan};
+  return {cents,rub,validDate,day,daysBetween,monthEnd,spendable,occurrenceDetails,occurrences,eventKey,incomePeriod,incomeEventKey,linkedTransaction,handled,scheduled,goalSaved,ledger,forecast,spendingPlan};
 })();
 
 function seed(){const m=monthNow, d=n=>m+'-'+String(Math.min(n,maxDay(m))).padStart(2,'0');return {version:1,demo:true,months:{[m]:{opening:0,expected:115000}},transactions:[
@@ -661,6 +680,8 @@ function prepareAccounts(d){
   for(const t of d.transactions){if(!t.accountId&&d.accounts.length)t.accountId=d.accounts[0].id;if(t.billId&&!t.billDate)t.billDate=t.date;}
   for(const b of d.bills){b.startMonth=b.startMonth||monthNow;b.startDate=b.startDate||`${b.startMonth}-${String(Math.min(Number(b.day)||1,maxDay(b.startMonth))).padStart(2,'0')}`;b.interval=b.interval||1;b.unit=b.unit||'month';b.emoji=b.emoji||'🧾';}
   for(const i of d.plannedIncomes){i.startDate=i.startDate||i.date;i.unit=i.unit||'once';i.interval=i.interval||1;}
+  for(const i of d.plannedIncomes){if(i.monthDayRule!=null&&!['date','last'].includes(i.monthDayRule)||i.weekendRule!=null&&!['none','previous'].includes(i.weekendRule)||i.day!=null&&(!Number.isInteger(Number(i.day))||Number(i.day)<1||Number(i.day)>31))throw Error('Неверное правило даты поступления');}
+  for(const t of d.transactions)if(t.incomePeriod!=null&&!/^\d{4}-(0[1-9]|1[0-2])$/.test(t.incomePeriod))throw Error('Неверный период поступления');
   for(const list of [d.transactions,d.bills,d.plannedIncomes,d.transfers])for(const item of list){if(!Number.isFinite(Number(item.amount))||Number(item.amount)<=0||Number(item.amount)>1e12)throw Error('Неверная сумма');const date=item.startDate||item.date;if(!Finance.validDate(date))throw Error('Неверная дата');if((item.startDate)&&(!['once','month','week'].includes(item.unit)||!Number.isInteger(Number(item.interval))||Number(item.interval)<1))throw Error('Неверное расписание');}
   for(const a of d.allocations)if(!Finance.validDate(a.date)||!Number.isFinite(Number(a.amount)))throw Error('Неверное резервирование');
   for(const g of d.goals)if(!Number.isFinite(Number(g.target))||Number(g.target)<=0||!Number.isFinite(Number(g.savedInitial))||Number(g.savedInitial)<0)throw Error('Неверная цель');
@@ -724,9 +745,25 @@ function renderCalendar(){
     navigation=`<section class="panel calendar-month-panel"><div class="cal-weekdays">${['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d=>`<span>${d}</span>`).join('')}</div><div class="cal-grid">${cells}</div><div class="cal-legend"><span><i class="bill"></i>Расход</span><span><i class="income"></i>Доход</span></div><button class="linkbutton" data-action="go-today">Сегодня</button></section>`;
   }
   const overview=isWeek?`<details class="week-overview"><summary>Все события недели · ${events.length}</summary>${Array.from({length:7},(_,i)=>{const date=Finance.day(start,i),items=events.filter(e=>e.date===date);return items.length?`<h3>${dateLabel(date)}</h3>${items.map(eventRow).join('')}`:'';}).join('')||'<p class="form-help">На эту неделю нет плановых событий.</p>'}</details>`:'';
-  return `<div class="cal-heading"><div><span class="cal-kicker">${esc(monthName(month))}</span><h2>${isWeek?'План на неделю':'Финансовый календарь'}</h2></div><div class="cal-actions"><button class="outline" data-action="add-planned-income">＋ Доход</button><button class="primary" data-action="add-bill">＋ Платёж</button></div></div><div class="calendar-mode" role="group" aria-label="Вид календаря"><button data-action="calendar-view" data-view="week" aria-pressed="${isWeek}">Неделя</button><button data-action="calendar-view" data-view="month" aria-pressed="${!isWeek}">Месяц</button></div><div class="cal-layout">${navigation}<section class="panel cal-detail"><div class="panel-head"><h2>${dateLabel(selected)}</h2><span class="hint">${focus.length} событий</span></div>${focus.map(eventRow).join('')||'<div class="empty">На этот день нет плановых событий.</div>'}</section></div>${mobileForecastPanel(selected)}<div class="cal-summary section-gap"><div><small>Ожидаются поступления · ${isWeek?'неделя':'месяц'}</small><strong>${fmt(sum('income'))}</strong></div><div><small>Платежи в плане · ${isWeek?'неделя':'месяц'}</small><strong>${fmt(sum('bill'))}</strong></div></div>${overview}<section class="panel section-gap"><div class="panel-head"><h2>Расписания доходов</h2><button class="linkbutton" data-action="add-planned-income">Добавить</button></div>${data.plannedIncomes.map(i=>`<div class="quickitem"><div class="quickinfo"><b>${esc(i.title)}</b><div class="quicksub">${i.unit==='once'?dateLabel(i.startDate):cadenceLabel(i)} · ${esc(accountName(i.accountId))}</div></div><strong>${fmt(i.amount)}</strong><button class="outline small" data-action="edit-income" data-id="${esc(i.id)}">Изменить</button><button class="tx-act" data-action="remove-planned-income" data-id="${esc(i.id)}" aria-label="Удалить расписание ${esc(i.title)}">×</button></div>`).join('')||E()}</section>`;
+  return `<div class="cal-heading"><div><span class="cal-kicker">${esc(monthName(month))}</span><h2>${isWeek?'План на неделю':'Финансовый календарь'}</h2></div><div class="cal-actions"><button class="outline" data-action="add-planned-income">＋ Доход</button><button class="primary" data-action="add-bill">＋ Платёж</button></div></div><div class="calendar-mode" role="group" aria-label="Вид календаря"><button data-action="calendar-view" data-view="week" aria-pressed="${isWeek}">Неделя</button><button data-action="calendar-view" data-view="month" aria-pressed="${!isWeek}">Месяц</button></div><div class="cal-layout">${navigation}<section class="panel cal-detail"><div class="panel-head"><h2>${dateLabel(selected)}</h2><span class="hint">${focus.length} событий</span></div>${focus.map(eventRow).join('')||'<div class="empty">На этот день нет плановых событий.</div>'}</section></div>${mobileForecastPanel(selected)}<div class="cal-summary section-gap"><div><small>Ожидаются поступления · ${isWeek?'неделя':'месяц'}</small><strong>${fmt(sum('income'))}</strong></div><div><small>Платежи в плане · ${isWeek?'неделя':'месяц'}</small><strong>${fmt(sum('bill'))}</strong></div></div>${overview}<section class="panel section-gap"><div class="panel-head"><h2>Расписания доходов</h2><button class="linkbutton" data-action="add-planned-income">Добавить</button></div>${data.plannedIncomes.map(i=>`<div class="quickitem"><div class="quickinfo"><b>${esc(i.title)}</b><div class="quicksub">${incomeScheduleLabel(i)} · ${esc(accountName(i.accountId))}</div></div><strong>${fmt(i.amount)}</strong><button class="outline small" data-action="edit-income" data-id="${esc(i.id)}">Изменить</button><button class="tx-act" data-action="remove-planned-income" data-id="${esc(i.id)}" aria-label="Удалить расписание ${esc(i.title)}">×</button></div>`).join('')||E()}</section>`;
 }
-function addPlannedIncome(existingId=''){const existing=typeof existingId==='string'?data.plannedIncomes.find(i=>i.id===existingId):null;showModal(existing?'Изменить поступление':'Запланировать поступление',incomeForm(existing),fd=>{const title=String(fd.get('title')||'').trim(),amount=Number(fd.get('amount')),date=String(fd.get('date')||''),[unit,n]=String(fd.get('cadence')).split(':'),accountId=String(fd.get('forecastAccount')||'');if(!title||!Number.isFinite(amount)||amount<=0||!Finance.validDate(date)||!['once','week','month'].includes(unit))return toast('Проверьте название, сумму и дату');const item={id:existing?.id||id(),title:title.slice(0,80),amount:money(amount),date,startDate:date,unit,interval:Number(n),accountId};if(existing)Object.assign(existing,item);else data.plannedIncomes.push(item);save();closeModal();ui();toast('Поступление добавлено в план');});if(existing?.unit==='once')document.getElementById('incomeCadence').value='once:1';}
+function addPlannedIncome(existingId=''){
+  const existing=typeof existingId==='string'?data.plannedIncomes.find(i=>i.id===existingId):null;
+  showModal(existing?'Изменить поступление':'Запланировать поступление',incomeForm(existing),fd=>{
+    const title=String(fd.get('title')||'').trim(),amount=Number(fd.get('amount')),accountId=String(fd.get('forecastAccount')||''),rule=readIncomeRule(fd);
+    if(rule.error)return toast(rule.error);
+    if(!title||!Number.isFinite(amount)||amount<=0||amount>1e12||accountId&&!data.accounts.some(a=>a.id===accountId))return toast('Проверьте название, сумму и счёт');
+    const previous=JSON.stringify(data),current=existing?data.plannedIncomes.find(i=>i.id===existing.id):null;
+    preserveIncomeOccurrences(current);
+    const item={id:current?.id||id(),title:title.slice(0,80),amount:money(amount),accountId,...rule};
+    if(current)Object.assign(current,item);else data.plannedIncomes.push(item);
+    if(!save()){data=JSON.parse(previous);return;}
+    closeModal();ui();toast(current?'Расписание обновлено':'Поступление добавлено в план');
+  });
+  document.getElementById('incomeCadence').value=existing?`${existing.unit}:${existing.interval}`:'month:1';
+  document.getElementById('modalForm').addEventListener('change',event=>{if(['cadence','monthDay','startMonth','weekendRule','date'].includes(event.target.name))syncIncomeRuleForm();});
+  syncIncomeRuleForm();
+}
 function renderTransactions(){let ts=transactions(),t=totals();return `<div class="section-heading"><div><h2>История за ${monthName(month)}</h2><div class="section-note">Доходы ${fmt(t.income)} · расходы ${fmt(t.spent)}</div></div><button class="primary" data-action="add-tx">+ Запись</button></div><div class="stack">${ts.length?ts.map(x=>`<div class="tx-card"><div class="quickicon">${x.type==='income'?'💸':catEmoji(x.category)}</div><div class="tx-main"><div class="tx-title">${esc(x.title)}</div><div class="tx-sub">${when(x.date)} · ${esc(x.category)}${x.billId?' · регулярный платёж':''} · ${esc(accountName(x.accountId))}${x.date>todayKey()?' · будущая запись, только в прогнозе':''}</div></div><div class="tx-amount ${x.type==='income'?'plus':''}">${x.type==='income'?'+':'−'}${fmt(x.amount)}</div><button class="tx-act" title="Удалить" aria-label="Удалить запись" data-action="delete-tx" data-id="${esc(x.id)}">✕</button></div>`).join(''):E()}</div>`;}
 function cadenceLabel(b){if(b.unit==='week')return Number(b.interval)===1?'Каждую неделю':`Каждые ${b.interval} нед.`;const n=Number(b.interval)||1;return n===1?'Каждый месяц':`Каждые ${n} мес.`;}
 function renderBills(){const events=eventsForCalendar().filter(e=>e.kind==='bill');return `<div class="section-heading"><div><h2>Регулярные платежи</h2><p class="section-note">В этом месяце осталось подтвердить ${fmt(totals().obligations)}</p></div><button class="primary" data-action="add-bill">＋ Платёж</button></div><p class="bills-note">Счёт в расписании используется для прогноза. При каждой оплате счёт списания выбирается явно.</p><div class="stack">${data.bills.map(b=>`<section class="panel"><div class="panel-head"><h2>${esc(b.emoji||'🧾')} ${esc(b.title)}</h2><div><button class="outline small" data-action="edit-bill" data-id="${esc(b.id)}">Изменить</button><button class="tx-act" data-action="delete-bill" data-id="${esc(b.id)}" aria-label="Удалить расписание">×</button></div></div><p class="section-note">${cadenceLabel(b)} · ${esc(accountName(b.accountId))} · ${fmt(b.amount)}</p>${events.filter(e=>e.id===b.id).map(eventRow).join('')||'<p class="form-help">В выбранном месяце нет платежей по этому расписанию.</p>'}</section>`).join('')||E()}</div>`;}
@@ -792,7 +829,7 @@ function accountOrderControls(account,index,total){
 }
 
 function eventRow(e){
-  const tx=data.transactions.find(t=>e.kind==='bill'?t.billId===e.id&&(t.billDate||t.date)===e.date:t.plannedIncomeId===e.id&&(t.incomeDate||t.date)===e.date);
+  const tx=Finance.linkedTransaction(data,e.kind,e.id,e.date);
   const state=e.skipped?'Пропущено':e.done?`${e.kind==='bill'?'Оплачено':'Зачислено'}${tx?' '+when(tx.date):''}`:e.date<todayKey()?'Ожидает подтверждения':e.kind==='income'?'Ожидается':'К оплате';
   const attrs=`data-id="${esc(e.id)}" data-date="${esc(e.date)}"`;
   let actions='';
@@ -814,7 +851,10 @@ function releaseGoal(goalId){const g=data.goals.find(x=>x.id===goalId);if(!g)ret
 
 function cadenceOptions(value='month:1',once=false){return `${once?'<option value="once:1">Один раз</option>':''}${[['week:1','Каждую неделю'],['month:1','Каждый месяц'],['month:2','Каждые 2 месяца'],['month:3','Каждые 3 месяца'],['month:6','Каждые 6 месяцев'],['month:12','Каждые 12 месяцев']].map(([key,text])=>`<option value="${key}" ${key===value?'selected':''}>${text}</option>`).join('')}`;}
 
-function incomeForm(item){return `${inp('Название','title',`maxlength="80" value="${esc(item?.title||'')}" placeholder="Зарплата или аванс"`)}${inp('Сумма, ₽','amount',`type="number" min="0.01" step="0.01" value="${item?.amount||''}"`)}${inp('Первая дата поступления','date',`type="date" value="${item?.startDate||defaultDay(month)}" min="2000-01-01" max="2100-12-31"`)}<div class="field"><label for="incomeCadence">Повторять</label><select id="incomeCadence" name="cadence">${cadenceOptions(item?`${item.unit}:${item.interval}`:'month:1',true)}</select></div>${optionalAccountSelect(item?.accountId||'','На какой счёт ожидаются деньги?')}`;}
+function incomeForm(item){
+  const start=item?.startDate||defaultDay(month),selectedDay=item?.monthDayRule==='last'?'last':String(Number(item?.day)||Number(start.slice(-2)));
+  return `${inp('Название','title',`maxlength="80" value="${esc(item?.title||'')}" placeholder="Зарплата или аванс"`)}${inp('Сумма, ₽','amount',`type="number" min="0.01" max="1000000000000" step="0.01" value="${item?.amount||''}"`)}<div class="field"><label for="incomeCadence">Повторять</label><select id="incomeCadence" name="cadence">${cadenceOptions(item?`${item.unit}:${item.interval}`:'month:1',true)}</select></div><div id="incomeMonthlyRules" class="income-month-rules"><div class="field"><label for="incomeMonthDay">День месяца</label><select id="incomeMonthDay" name="monthDay" required><option value="last" ${selectedDay==='last'?'selected':''}>Последний день месяца</option>${Array.from({length:31},(_,index)=>index+1).map(day=>`<option value="${day}" ${selectedDay===String(day)?'selected':''}>${day}-го числа</option>`).join('')}</select></div><div class="field"><label for="incomeStartMonth">Начиная с месяца</label><input id="incomeStartMonth" name="startMonth" type="month" min="2000-01" max="2100-12" value="${esc(start.slice(0,7))}" required></div><div class="field"><label for="incomeWeekendRule">Если дата выпала на выходной</label><select id="incomeWeekendRule" name="weekendRule"><option value="none">Оставить дату</option><option value="previous" ${item?.weekendRule==='previous'?'selected':''}>Перенести на предыдущий будний день</option></select><span class="form-help">Будние дни — понедельник–пятница. Праздники и переносы рабочих дней не учитываются.</span></div></div><div id="incomeDateRule" class="income-date-rule">${inp('Первая дата поступления','date',`type="date" value="${esc(start)}" min="2000-01-01" max="2100-12-31"`)}</div><div id="incomePreview" class="income-preview" aria-live="polite" aria-atomic="true"></div>${optionalAccountSelect(item?.accountId||'','На какой счёт ожидаются деньги?')}`;
+}
 
 function receiveIncome(incomeId,date){
   const item=data.plannedIncomes.find(i=>i.id===incomeId);if(!item||Finance.handled(data,'income',incomeId,date))return toast('Поступление уже учтено');
@@ -828,7 +868,7 @@ function undoBill(billId,date){
   save();ui();toast('Отметка оплаты отменена');
 }
 
-function skipEvent(kind,key,date,undo=false){const event=Finance.eventKey(kind,key,date);if(undo)data.skippedOccurrences=data.skippedOccurrences.filter(k=>k!==event);else if(!data.skippedOccurrences.includes(event)&&confirm('Пропустить только эту дату? Операция не будет создана, остальные повторы сохранятся.'))data.skippedOccurrences.push(event);save();ui();}
+function skipEvent(kind,key,date,undo=false){const item=kind==='income'?data.plannedIncomes.find(i=>i.id===key):null,event=item?Finance.incomeEventKey(item,date):Finance.eventKey(kind,key,date),legacy=Finance.eventKey(kind,key,date);if(undo)data.skippedOccurrences=data.skippedOccurrences.filter(k=>k!==event&&k!==legacy);else if(!data.skippedOccurrences.includes(event)&&confirm('Пропустить только эту дату? Операция не будет создана, остальные повторы сохранятся.'))data.skippedOccurrences.push(event);save();ui();}
 
 function renderMore(){return `<div class="more-grid">${[['bills','Регулярные платежи','Расписания, счета и подтверждение оплаты'],['goals','Накопления и цели','Резервы и счета накоплений'],['settings','Настройки и копии','Подушка, импорт и экспорт JSON']].map(([key,title,description])=>`<button class="more-tile" data-nav="${key}">${svg(key)}<b>${title}</b><span>${description}</span></button>`).join('')}</div>`;}
 
@@ -854,9 +894,50 @@ function recordPlannedIncome(incomeId,date,accountId,actualDate,amount,existingI
   if(!item||!Finance.validDate(date)||!Finance.occurrences(item,date,date).length)return {error:'Дата не относится к расписанию поступления'};
   if(Finance.handled(data,'income',incomeId,date))return {error:'Эта дата уже зачислена'};
   if(!a)return {error:'Выберите счёт зачисления'};
-  if(existingId){const t=data.transactions.find(t=>t.id===existingId);if(!t||t.type!=='income'||t.plannedIncomeId||t.accountId!==accountId)return {error:'Выберите свободную запись дохода с того же счёта'};t.plannedIncomeId=incomeId;t.incomeDate=date;t.incomeLinkedExisting=true;return {transaction:t};}
+  if(existingId){const t=data.transactions.find(t=>t.id===existingId);if(!t||t.type!=='income'||t.plannedIncomeId||t.accountId!==accountId)return {error:'Выберите свободную запись дохода с того же счёта'};t.plannedIncomeId=incomeId;t.incomeDate=date;t.incomeLinkedExisting=true;const period=Finance.incomePeriod(item,date);if(period)t.incomePeriod=period;return {transaction:t};}
   if(!Finance.validDate(actualDate)||actualDate>todayKey()||a.openingDate&&actualDate<a.openingDate||!Number.isFinite(Number(amount))||Finance.cents(amount)<=0)return {error:'Проверьте сумму и фактическую дату'};
-  const transaction={id:id(),type:'income',title:item.title,category:'Другой доход',amount:money(amount),accountId:a.id,date:actualDate,plannedIncomeId:incomeId,incomeDate:date};data.transactions.push(transaction);return {transaction};
+  const transaction={id:id(),type:'income',title:item.title,category:'Другой доход',amount:money(amount),accountId:a.id,date:actualDate,plannedIncomeId:incomeId,incomeDate:date};const period=Finance.incomePeriod(item,date);if(period)transaction.incomePeriod=period;data.transactions.push(transaction);return {transaction};
+}
+
+function incomeScheduleLabel(item){
+  if(item.unit==='once')return dateLabel(item.startDate);
+  const cadence=cadenceLabel(item);
+  if(item.unit!=='month')return cadence;
+  const day=item.monthDayRule==='last'?'последний день месяца':`${Number(item.day)||Number(item.startDate.slice(-2))}-го числа`;
+  return `${cadence} · ${day}${item.weekendRule==='previous'?' · выходной → предыдущий будний':''}`;
+}
+
+function readIncomeRule(fd){
+  const [unit,n]=String(fd.get('cadence')||'').split(':'),interval=Number(n);
+  if(!['once','month','week'].includes(unit)||!Number.isInteger(interval)||interval<1||interval>1200)return {error:'Выберите периодичность поступления'};
+  if(unit!=='month'){
+    const date=String(fd.get('date')||'');
+    if(!Finance.validDate(date)||date<'2000-01-01'||date>'2100-12-31')return {error:'Укажите первую дату поступления'};
+    return {unit,interval,date,startDate:date,day:undefined,monthDayRule:'date',weekendRule:'none'};
+  }
+  const firstMonth=String(fd.get('startMonth')||''),selectedDay=String(fd.get('monthDay')||''),last=selectedDay==='last',day=last?31:Number(selectedDay),weekendRule=String(fd.get('weekendRule')||'none');
+  if(!/^\d{4}-\d{2}$/.test(firstMonth)||!Finance.validDate(firstMonth+'-01')||firstMonth<'2000-01'||firstMonth>'2100-12'||!Number.isInteger(day)||day<1||day>31||!['none','previous'].includes(weekendRule))return {error:'Проверьте день, начальный месяц и правило переноса'};
+  const end=Finance.monthEnd(firstMonth+'-01'),date=last?end:firstMonth+'-'+String(Math.min(day,Number(end.slice(-2)))).padStart(2,'0');
+  return {unit,interval,date,startDate:date,day,monthDayRule:last?'last':'date',weekendRule};
+}
+
+function syncIncomeRuleForm(){
+  const monthly=document.getElementById('incomeCadence').value.startsWith('month:');
+  document.getElementById('incomeMonthlyRules').hidden=!monthly;document.getElementById('incomeDateRule').hidden=monthly;
+  for(const id of ['incomeMonthDay','incomeStartMonth','incomeWeekendRule'])document.getElementById(id).disabled=!monthly;
+  document.getElementById('f-date').disabled=monthly;
+  const preview=document.getElementById('incomePreview'),rule=readIncomeRule(new FormData(document.getElementById('modalForm')));
+  if(rule.error){preview.textContent='Укажите расписание, чтобы увидеть ближайшие даты.';return;}
+  const from=Finance.day(rule.startDate,-2)>todayKey()?Finance.day(rule.startDate,-2):todayKey(),dates=Finance.occurrenceDetails(rule,from,Finance.day(from,1100)).slice(0,3);
+  const label=date=>new Date(date+'T12:00:00Z').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+  preview.innerHTML=`<b>Ближайшие даты</b>${dates.length?`<ul>${dates.map(event=>`<li><time datetime="${event.date}">${esc(label(event.date))}</time>${event.date!==event.nominalDate?`<small>Вместо ${esc(label(event.nominalDate))}</small>`:''}</li>`).join('')}</ul>`:'<p>Будущих дат по этому расписанию нет.</p>'}`;
+}
+
+function preserveIncomeOccurrences(item){
+  if(!item||item.unit!=='month')return;
+  for(const transaction of data.transactions)if(transaction.plannedIncomeId===item.id&&!transaction.incomePeriod){const period=Finance.incomePeriod(item,transaction.incomeDate||transaction.date);if(period)transaction.incomePeriod=period;}
+  const prefix=`income:${item.id}:`;
+  data.skippedOccurrences=data.skippedOccurrences.map(key=>{if(!key.startsWith(prefix))return key;const date=key.slice(prefix.length);return Finance.validDate(date)&&Finance.incomePeriod(item,date)?Finance.incomeEventKey(item,date):key;});
 }
 
 function syncMobileUI(){
