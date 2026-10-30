@@ -2,13 +2,25 @@
 .mini-status{font-size:11px;color:#80664b;line-height:1.6;margin:0 0 12px;padding:9px 12px;background:#f4e2c5;border-radius:12px}
 .brand-sign{display:none}
 body[data-page=home] .topbar{position:relative;isolation:isolate;align-items:center}
-body[data-page=home] .topbar>div:first-child{position:relative;min-width:0}
-body[data-page=home] .brand-sign{display:block;position:relative;width:128px;height:128px;pointer-events:none;isolation:isolate;margin:0 0 7px}
+body[data-page=home] .topbar>div:first-child{position:relative;min-width:0;display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:12px}
+body[data-page=home] .brand-sign{display:block;position:relative;width:72px;height:72px;pointer-events:none;isolation:isolate;margin:0;grid-column:1;grid-row:1}
 .brand-wordmark{display:block;width:100%;height:100%;object-fit:contain;transform:none}
 body[data-page=home] #pageTitle{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip-path:inset(50%);white-space:nowrap;border:0}
-body[data-page=home] .subtitle{position:relative;margin-top:0;padding-left:4px;z-index:1}
+body[data-page=home] .subtitle{position:relative;margin:0;z-index:1;grid-column:2;grid-row:1;font-size:14px;line-height:1.5}
 body[data-page=home] #quickAdd{align-self:center;position:relative;z-index:2}
-@media(max-width:359px){body[data-page=home] .brand-sign{width:116px;height:116px}}
+body[data-page=home] .topbar{margin-bottom:10px}
+body[data-page=home] .eyebrow{display:none}
+.context-note{margin:0 0 12px;color:#69513d;font-size:13px;line-height:1.65;border:1px solid #ddc5a3;border-radius:12px;background:#f5e6ce}
+.context-note>summary{display:flex;align-items:center;gap:7px;padding:9px 12px;min-height:44px;cursor:pointer;list-style:none;font-weight:700}
+.context-note>summary::-webkit-details-marker{display:none}
+.context-note>summary::before{content:'';width:7px;height:7px;border-radius:50%;background:#51683e;flex-shrink:0}
+.context-note>summary::after{content:'⌄';margin-left:auto;font-size:18px;line-height:1}
+.context-note[open]>summary::after{content:'⌃'}
+.context-note .mini-status{padding:0;margin:0 12px 12px;background:transparent;font-size:13px;color:inherit}
+.context-note .demo-note{padding:0;margin:0 12px 12px;background:transparent;border:0;font-size:13px;color:inherit}
+.context-note .demo-note p{margin:0}
+.context-note .demo-note button{min-height:44px;font-size:13px}
+@media(max-width:359px){body[data-page=home] .topbar>div:first-child{grid-template-columns:64px minmax(0,1fr);gap:9px}body[data-page=home] .brand-sign{width:64px;height:64px}body[data-page=home] .subtitle{font-size:13px}}
 .mini-data-tools{display:grid;gap:10px;margin-top:16px}.mini-data-tools button{min-height:46px}
 .modal-fields textarea{width:100%;min-height:140px;resize:vertical;border:1px solid #dbc09a;background:#fff9ed;border-radius:12px;padding:12px;font:13px/1.6 ui-monospace,monospace!important;color:#503b2a}
 .telegram-app .content{padding-top:calc(14px + max(env(safe-area-inset-top,0px),var(--mini-safe-top,0px)));padding-left:max(16px,env(safe-area-inset-left,0px),var(--mini-safe-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px),var(--mini-safe-right,0px));padding-bottom:calc(105px + max(env(safe-area-inset-bottom,0px),var(--mini-safe-bottom,0px)))}
