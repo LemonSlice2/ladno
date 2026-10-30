@@ -17,9 +17,8 @@
     window.LadnoMiniApp?.refreshViewport();
   }
   function theme(){
-    const dark=active&&tg.colorScheme==='dark';
-    document.documentElement.classList.toggle('telegram-dark',dark);
-    const bg=dark?'#24231e':'#f7ecd8',bottom=dark?'#302e27':'#fff3df';
+    document.documentElement.classList.toggle('telegram-dark',false);
+    const bg='#f7ecd8',bottom='#fff3df';
     safeCall(tg?.setHeaderColor?.bind(tg),bg);
     safeCall(tg?.setBackgroundColor?.bind(tg),bg);
     if(tg?.isVersionAtLeast?.('7.10'))safeCall(tg?.setBottomBarColor?.bind(tg),bottom);
