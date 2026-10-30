@@ -929,7 +929,7 @@ function syncIncomeRuleForm(){
   const preview=document.getElementById('incomePreview'),rule=readIncomeRule(new FormData(document.getElementById('modalForm')));
   if(rule.error){preview.textContent='Укажите расписание, чтобы увидеть ближайшие даты.';return;}
   const from=Finance.day(rule.startDate,-2)>todayKey()?Finance.day(rule.startDate,-2):todayKey(),dates=Finance.occurrenceDetails(rule,from,Finance.day(from,1100)).slice(0,3);
-  const label=date=>new Date(date+'T12:00:00Z').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+  const label=date=>new Date(date+'T12:00:00Z').toLocaleDateString('ru-RU',{timeZone:'UTC',day:'numeric',month:'long',year:'numeric'});
   preview.innerHTML=`<b>Ближайшие даты</b>${dates.length?`<ul>${dates.map(event=>`<li><time datetime="${event.date}">${esc(label(event.date))}</time>${event.date!==event.nominalDate?`<small>Вместо ${esc(label(event.nominalDate))}</small>`:''}</li>`).join('')}</ul>`:'<p>Будущих дат по этому расписанию нет.</p>'}`;
 }
 
